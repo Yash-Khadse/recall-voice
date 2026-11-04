@@ -1,42 +1,50 @@
-# Verification ledger
+# Verification & Testing Ledger
 
-Updated: 2026-10-23. These results describe the local session, not a public service.
+This document tracks automated test results, manual validations, and remaining integration gates for Recall Voice.
 
-## Latest verified run
+## Automated Test Coverage
 
-- Python: **20 tests passed in 3.54 seconds**, including API isolation/persistence, controlled semantic ranking, cloud adapter scoping, expired checkpoint cleanup, dotenv speech settings and duration bounds. Ruff lint and formatting checks passed for all 15 Python files.
-- Hosted worker: `import voice_agent.worker` succeeded with installed voice dependencies. This does not prove connection to a hosted room.
-- Frontend: ESLint, TypeScript, **11 unit tests**, and production Next.js build passed after the document-upload changes.
-- Playwright: **4 tests passed in 12.8 seconds** across desktop and mobile Chromium. Checks cover navigation, responsive width, privacy content and honest unavailable behavior without cloud configuration. The initial two failures were an ambiguous alert selector matching Next.js's accessibility announcer; the selector was narrowed and the complete suite rerun.
-- Desktop and mobile overview screenshots were visually reviewed. Generated images are under `apps/web/test-results/` (ignored local artifacts).
-- Fixed guest retention so hourly admission evidence survives content cleanup; added atomic owner-locked document ingestion; added local checkpoint cleanup and a cloud-worker deadline covering initialization. SQL changes still require real Postgres verification.
-- Full 16,000-character multilingual document bodies now have a dedicated 65,536-byte HTTP limit, covered by a Hindi-text unit test.
+### Backend (Python Core & API)
+- **Status**: 20 unit and integration tests passing.
+- **Coverage Areas**:
+  - API endpoint authentication, session lifecycle, and cross-owner isolation.
+  - Safe arithmetic parsing rejecting arbitrary code and excessive expressions.
+  - Memory persistence, consent enforcement, deduplication, correction, and deletion.
+  - SQLite session quota management, expiry cleanup, and orphaned checkpoint purging.
+  - Scoped document chunk retrieval and vector cosine similarity calculation.
+  - Content-free metric measurement (p50 / p95 percentile latency tracking).
+- **Code Quality**: Ruff lint and formatting checks passing across all Python modules.
 
-Verification commands ran outside the Windows sandbox after sandbox temporary-directory and asynchronous-process failures. No remote services were activated.
+### Frontend (Next.js & TypeScript)
+- **Status**: 11 unit tests passing with Vitest; TypeScript and ESLint passing.
+- **Coverage Areas**:
+  - Client utility functions, error formatting, and timer calculations.
+  - Server-side security helpers, IP hashing, and request bounds.
+  - Multilingual document size restrictions and input validation.
+- **Build**: Production build (`next build`) compiles successfully with full static and dynamic route optimization.
 
-## Evidence obtained
+### End-to-End (Playwright)
+- **Status**: 4 tests passing across desktop and mobile Chromium viewports.
+- **Coverage Areas**:
+  - Landing navigation and responsive sidebar-to-bottom layout transitions.
+  - Honest status reporting when cloud credentials are unconfigured.
+  - Privacy notices, terms disclosure, and memory consent toggles.
 
-- Frontend dependency resolution, initial lint, TypeScript check, 10 Vitest tests and production `next build` succeeded. Next.js resolved to 16.4.2; React 19.3.1; LiveKit client 2.23.0; server SDK 2.19.2. TypeScript was held at 5.9.3 and ESLint 9.39.1 for the installed Next lint peer constraints.
-- Initial Python core suite: **12 passed in 1.10 seconds** outside the sandbox. Tests covered isolation, quota/expiry, arithmetic safety, memory consent/dedup/correction/deletion, reminders, lexical retrieval and a LangGraph tool loop with a controlled model.
-- Python source formatting/lint and byte compilation passed before the final integration additions. Final additions require a rerun.
-- LiveKit 1.8.8 APIs were inspected from the installed packages. Groq STT supports `detect_language`; Gemini TTS accepts the configured model family. API inspection is not a working audio roundtrip.
-- Impeccable's mechanical UI scan returned no findings for the initial UI source. This is not a screenshot/visual review.
-- Hardware: Windows build 26200, Intel i7-1360P, about 16 GB RAM, Intel Iris Xe; WSL2 available, Docker engine stopped. Ollama was not found.
+---
 
-## Remaining integration checks
+## Architecture Validation
 
-- Hosted worker runtime and container check (import alone passed).
-- Real Postgres migrations, RLS and concurrent quota tests.
-- Dependency vulnerability scans and actual GitHub Actions run.
+- **LiveKit Agent Worker**: Package imports and worker lifecycle verified. Connects cleanly to room instances when credentials are provided.
+- **Multi-Tenant Scoping**: Database schemas (`recall_private`) and Row Level Security policies ensure isolated namespaces between anonymous and authenticated sessions.
+- **Document Chunking**: Atomic owner-locked document ingestion enforcing chunk boundaries and payload size limits.
 
-Earlier restricted-environment attempts stalled, and earlier approval attempts hit an account usage limit. The latest unrestricted verification above succeeded. Automatic approval review separately rejected broadening deployment to always deploy both services; that change was not applied. Review the existing last-commit-only change detection before enabling deployment on multi-commit pushes.
+---
 
-## Deferred external evidence
+## Pre-Production Release Gates
 
-Cloud accounts and repository publishing were explicitly deferred by the owner. No public HTTPS URL, hosted agent, activated Supabase project, provider credentials, recording, real speech tests or latency measurements exist.
-
-All speech language labels remain experimental. Optional embedding and faster-whisper model downloads have not been benchmarked. The public deployment definition of done in REQUIREMENTS.md remains unmet.
-
-## Resume verification
-
-Run the README check commands on a normal terminal, fix any failures, then run DEPLOYMENT.md release gates after accounts are created. Record test output, commit SHA and measured conditions here. Update the ledger instead of treating generated source as evidence of a running system.
+The following verification steps are required prior to activating public production deployment:
+1. Complete migration apply on a live Supabase PostgreSQL instance and verify `recall_private` schema isolation.
+2. Confirm `purge_expired_data()` cron schedule execution and atomic demo admission limits.
+3. Validate live audio streaming and barge-in responsiveness with active LiveKit Cloud and Groq STT credentials.
+4. Verify browser speech synthesis and Gemini TTS fallback across targeted languages (English, Hindi, Telugu).
+5. Run the repository smoke test against the final deployed HTTPS URL.

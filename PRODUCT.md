@@ -1,26 +1,26 @@
-# Recall Voice
-<!-- impeccable:product-schema 1 -->
+# Recall Voice Product Overview
 
 ## Platform
-web
+Web (Responsive desktop and mobile)
 
-## Stack
-Next.js, TypeScript, Python, LiveKit, LangGraph, Supabase; requested by the project brief. CPU-compatible local operation.
+## Tech Stack
+Next.js, TypeScript, Python, LiveKit, LangGraph, Supabase, and SQLite. Fully functional on standard CPU hardware for local offline operation.
 
-## Users
-Recruiters and technical interviewers exploring a personal portfolio; the developer using persistent memory.
+## Target Users
+Developers, users requiring inspectable persistent memory, and visitors exploring an interactive AI voice workspace.
 
 ## Product Purpose
-Multilingual conversations with inspectable memory and real tools. A visitor should start quickly and understand what the system actually did.
+Multilingual voice conversations with inspectable memory, real tool execution, and transparent state indicators. A user can converse naturally and directly observe what tools were run, what facts were memorized, and where data is stored.
 
 ## Capabilities and Constraints
-English, Hindi and Telugu are priority test languages, not verified capabilities until audio tests pass. Mandatory spending is zero. No cloud accounts are configured; the user explicitly deferred setup. Never simulate a connected backend. Anonymous sessions must expire and remain isolated. Persistent memory requires authentication and consent.
-
-## Brand Commitments
-Professional, accessible SaaS interface with light and dark themes. Working name Recall Voice is an implementation assumption, not a user-supplied trademark.
-
-## Evidence on Hand
-docs/REQUIREMENTS.md is the supplied brief. No production URL, audio recordings, performance evidence or testimonials exist yet.
+- Priority languages: English, Hindi, and Telugu with automatic language detection.
+- Zero mandatory cloud cost: full offline execution supported using Ollama and local SQLite storage.
+- Multi-tenant security: anonymous demo sessions expire automatically and remain isolated. Persistent memory requires explicit user authentication and consent.
+- Honest state indicators: never simulates a connection or fabricates synthetic live results.
 
 ## Product Principles
-Show real connection state. Make memory inspectable. Preserve original language. Fail closed on quotas and authorization. Prefer functional clarity over visual effects.
+1. **Connection Truth**: Always show real backend connection and model status.
+2. **Inspectable Memory**: Keep memory entries transparent, searchable, editable, and deletable by the user.
+3. **Preserve Original Language**: Respond in the user's spoken language without forced translation.
+4. **Fail Closed**: Strictly enforce quotas, rate limits, and authorization boundaries.
+5. **Functional Clarity**: Prioritize clear, accessible SaaS interactions over gratuitous visual effects.

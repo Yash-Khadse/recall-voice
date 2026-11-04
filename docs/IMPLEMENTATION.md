@@ -1,20 +1,28 @@
-# Implementation and acceptance contract
+# Implementation Roadmap & Acceptance Matrix
 
-The authoritative requested scope is REQUIREMENTS.md. No deployment success is implied by source code being present.
+This document defines the implementation phases, deliverables, and acceptance criteria for Recall Voice.
 
-| Phase | Deliverable | Acceptance |
-| --- | --- | --- |
-| 1 | Architecture and comparison | Official source review and alternatives recorded |
-| 2 | Monorepo, dependencies and setup | Reproducible installation, build and test commands |
-| 3 | LiveKit voice worker and browser | Real English audio roundtrip; requires configured providers |
-| 4 | Language routing | Recorded English/Hindi/Telugu and code-switch tests; experimental until passed |
-| 5 | LangGraph and tools | Validated calculations, notes, tasks, reminders, memory and document search; bounded execution |
-| 6 | Memory persistence | Cross-session, correction, deletion, scoped retrieval tests; RLS integration gate |
-| 7 | Complete UI | Responsive landing/conversation/memory/history/settings; errors and keyboard controls |
-| 8 | Auth and quota protection | Atomic quota tests, cross-owner denial, server expiry and consent |
-| 9 | Public deployment | Deferred by user until accounts exist; verified HTTPS and hosted worker required |
-| 10 | CI/CD | Local-equivalent checks and secret-gated deployment; actual Actions run pending repository |
-| 11 | Reliability | Failure tests and measured metrics; no invented audio benchmarks |
-| 12 | Portfolio docs | Honest case study, deployment runbook and verification ledger |
+## Phase Breakdown
 
-Implementation proceeds by independent modules: Python core with tests; UI; server/storage; then integration, full checks and documentation. The claude-mem work_state_write tool is not exposed in this session (tool inventory searched); this document records the acceptance contract, not a claim of completed phases.
+| Phase | Deliverable | Acceptance Criteria |
+| :--- | :--- | :--- |
+| **1. Architecture & Specs** | System architecture and trade-off analysis | Multi-tenant boundaries, security isolation, and alternative cloud/local paths documented. |
+| **2. Monorepo Setup** | Unified workspace and dependency structure | Reproducible setup scripts, lockfiles, and automated testing commands for Python and Web. |
+| **3. Real-Time Voice Pipeline** | LiveKit voice worker and WebRTC client | Bi-directional audio streaming, Voice Activity Detection (VAD), and graceful interruption handling. |
+| **4. Multilingual Processing** | Language detection and code-switching | Support for English, Hindi, and Telugu with language preservation and fallback handling. |
+| **5. LangGraph Agent & Tools** | Bounded autonomous agent loop | Safe arithmetic evaluation (AST), notes, tasks, reminders, and scoped document retrieval. |
+| **6. Memory Persistence** | Multi-tier agentic memory system | Semantic, episodic, and procedural memory with user consent, correction, deletion, and export. |
+| **7. Web Interface** | Next.js responsive application | Overview, conversation, memory explorer, session history, and settings with light/dark themes. |
+| **8. Security & Rate Limiting** | Auth, quota protection, and tenant isolation | Atomic session admission, strict owner scoping, automatic expiry, and cross-owner access prevention. |
+| **9. Cloud Deployment** | Hosted cloud infrastructure | Vercel frontend, LiveKit Cloud worker, Supabase PostgreSQL with Row Level Security (RLS). |
+| **10. CI/CD Automation** | Automated verification and deployment workflows | GitHub Actions for linting, typing, unit/integration testing, security audit, and conditional deployment. |
+| **11. Reliability & Observability** | Metrics and error handling | Graceful handling of microphone denial, quota limits, provider errors, and content-free timing metrics. |
+| **12. Documentation** | Technical documentation suite | Architecture decisions, deployment runbook, security boundaries, and verification reports. |
+
+## Module Architecture
+
+The system is organized into decoupled, independently verifiable modules:
+- **Core Engine (`services/agent/voice_agent/engine.py`)**: StateGraph-driven agent execution loop with deterministic tool execution.
+- **Local & Cloud Storage (`services/agent/voice_agent/store.py`, `cloud_store.py`)**: Unified interface supporting SQLite for local runs and Supabase for cloud instances.
+- **Voice Worker (`services/agent/voice_agent/worker.py`)**: Event-driven WebRTC voice agent with VAD and STT/TTS routing.
+- **Web Application (`apps/web`)**: Next.js App Router frontend with server-side authorization and direct LiveKit WebRTC client integration.

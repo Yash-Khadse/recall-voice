@@ -1,11 +1,26 @@
-# Recall Voice visual system
+# Recall Voice Visual Design System
 
-Derived from the implemented interface. Desktop and mobile overview screenshots were reviewed on 2026-10-23.
+## Design Philosophy
+An editorial workspace aesthetic: restrained warm-white and charcoal surfaces, cobalt action accents, compact navigation, and spacious conversation layouts. The interface prioritizes clarity, real connection status, live transcripts, and user-owned data records.
 
-An editorial interview workspace: restrained warm-white/charcoal surfaces, cobalt actions, compact navigation and spacious conversation content. The landing surface explains the mechanism; operational views prioritize connection truth, transcripts and user-owned records.
+## Typography
+- **DM Sans**: Primary interface font for navigation, controls, forms, and transcripts.
+- **Newsreader**: Editorial secondary display font for landing headers and section intros.
+Both fonts are bundled locally via Fontsource, eliminating third-party font CDN dependencies.
 
-DM Sans serves UI text; Newsreader provides the landing's secondary display phrase. Both are packaged locally through Fontsource, avoiding font-network build dependencies. CSS variables define light/dark surfaces, text, dividers and accent roles. Controls use 8px radii, content panels 12–14px, and Lucide icons. The illustrative waveform is explicitly labeled and does not pretend to be live microphone data.
+## Color & Theming
+CSS custom variables define light and dark themes:
+- **Light Theme**: Warm neutral background (`#f8f9fb`), white surfaces (`#ffffff`), charcoal ink (`#20232c`), muted secondary text (`#626a78`), subtle borders (`#e3e6ec`), cobalt primary accent (`#345bdb`), soft hover/active fills (`#edf1fc`).
+- **Dark Theme**: Deep charcoal background (`#15171c`), dark slate surface (`#1c1f26`), high-contrast ink (`#eceef5`), muted gray text (`#a3abba`), dark slate borders (`#333845`), periwinkle accent (`#9aafff`), soft dark fills (`#282f46`).
 
-The desktop sidebar becomes horizontal navigation below 760px. Conversation inspection stacks below the transcript on intermediate widths. Reduced-motion preferences suppress animation. Native focus outlines, named controls, alerts and live transcript regions carry accessibility behavior.
+## Layout & Components
+- **Sidebar Navigation**: Desktop sidebar transforms into a clean horizontal navigation bar on mobile viewports (<760px).
+- **Inspection Panels**: Tool execution traces and memory inspection stack smoothly beneath transcripts on medium and narrow screens.
+- **Controls & Radii**: Interactive controls use consistent 8px radii, while content and card containers use 12–14px radii.
+- **Waveform & Status**: Audio activity displays a clear, explicitly labeled visualizer indicating listening and speaking states.
 
-Playwright captured desktop and mobile Chromium screenshots. Overview typography, stacking, spacing and navigation were visually inspected; responsive navigation checks passed in both viewport sizes. Physical-device speech testing, all-state visual inspection and an independent finish review remain outstanding.
+## Accessibility
+- Native visible focus outlines for all interactive elements.
+- Accessible form controls with descriptive labels and ARIA attributes.
+- Reduced-motion preferences (`prefers-reduced-motion`) are fully respected, disabling non-essential transitions.
+- High contrast compliance across both light and dark themes.

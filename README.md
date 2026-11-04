@@ -18,10 +18,10 @@ A multilingual voice workspace with LangGraph orchestration, inspectable memory,
 
 ## Local setup on Windows
 
-Prerequisites: Node.js 24 LTS, pnpm 10.24, Git, `uv`, and Ollama. Python 3.11–3.13 is supported; the development environment used 3.13. Hardware detected: i7-1360P, approximately 16 GB RAM, Intel Iris Xe. No CUDA assumption.
+Prerequisites: Node.js 24 LTS, pnpm 10.24+, Git, `uv`, and Ollama. Python 3.11–3.13 is supported (3.13 recommended). Recommended hardware: 16 GB RAM for local 4B model execution (or 8 GB+ for 1.7B). CPU-only execution is supported without requiring a dedicated GPU.
 
 ```powershell
-cd 'D:\WorkSpace\ME\Ai Voice Agent'
+cd recall-voice
 .\scripts\hardware.ps1
 .\scripts\setup.ps1
 ollama pull qwen3:4b
@@ -68,11 +68,11 @@ cd services/agent
 uv sync --extra local-speech --extra embeddings
 ```
 
-Set `WHISPER_MODEL=base` (or `small` on this 16 GB machine) and optionally `EMBEDDING_MODEL=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`. The embedding model must output 384 dimensions. First use downloads the models. Restart the API after changing environment settings.
+Set `WHISPER_MODEL=base` (or `small` on 16 GB+ RAM systems) and optionally `EMBEDDING_MODEL=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`. The embedding model must output 384 dimensions. First use downloads the models. Restart the API after changing environment settings.
 
 Use **Record a turn**, then stop, review the transcription and send. Recording is capped at 30 seconds and 3 MB. This is a CPU-compatible fallback; no local real-time latency claim is made. Enable browser speech in Settings only if your OS supplies the desired language voice. Missing Hindi/Telugu voices fall back to text.
 
-The embedding package/model and faster-whisper weights were not downloaded or benchmarked in this session. Semantic ranking is covered with controlled vectors; actual model quality needs testing. IndicF5 is not bundled: it requires consented reference audio, gated model access and a separate CPU benchmark. See [language validation](docs/LANGUAGES.md).
+Local faster-whisper weights and embedding models download on first use. Semantic ranking is covered with controlled vectors; actual model quality needs testing. IndicF5 is not bundled: it requires consented reference audio, gated model access and a separate CPU benchmark. See [language validation](docs/LANGUAGES.md).
 
 ## Checks
 

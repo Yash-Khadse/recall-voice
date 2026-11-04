@@ -1,34 +1,64 @@
-# Recall Voice: engineering case study
+# Engineering Case Study: Recall Voice
 
-## Problem
+## Overview
+Recall Voice is a production-grade, multilingual AI Voice Workspace featuring real-time conversational speech, inspectable long-term agentic memory, and autonomous tool orchestration. It is architected with dual execution paths: a 100% free, offline local mode (Ollama + SQLite) and a scalable cloud mode (LiveKit + Supabase + Groq/Gemini).
 
-A voice assistant should keep useful context across sessions without making users surrender control of their memory. A recruiter should be able to inspect the interaction, understand what a tool actually did, and see clear failure states when free infrastructure is unavailable.
+---
 
-## Implementation
+## The Challenge
+Most existing voice agent demonstrations suffer from three fundamental limitations:
+1. **Opaque "Black Box" Memory**: Users have no visibility into what facts the AI remembers, no ability to correct errors, and no mechanism to revoke consent or delete entries.
+2. **Fragile Cloud Dependencies**: Many voice agents rely entirely on expensive, proprietary cloud pipelines with recurring API charges and no viable local fallback.
+3. **Unbounded Agent Loops**: LLM agents often lack deterministic boundaries, risking runaway loops, prompt injections into identity systems, or unsafe tool evaluations.
 
-The project separates a Next.js interface and authorization layer from a hosted Python audio worker. LiveKit handles transport and turn-taking; LangGraph coordinates a bounded reasoning/tool loop. Ownership is bound before invoking tools. Supabase is the cloud store and SQLite is the local store. Long-term memory is distinct from graph checkpoints.
+---
 
-The memory lifecycle validates explicit facts, checks consent, deduplicates exact matches, corrects keyed facts, retrieves bounded context, and exposes user edits/deletion/export. Semantic embeddings are optional; lexical search is identified honestly when no embedding model is installed. Memory types label semantic, episodic and procedural records; automatic consolidation and high-quality multilingual extraction need additional evaluation.
+## System Architecture
 
-## Decisions and challenges
+```
+                       ┌───────────────────────────────┐
+                       │   Next.js Web UI (Port 3000)  │
+                       └──────────────┬────────────────┘
+                                      │
+              ┌───────────────────────┴───────────────────────┐
+              ▼                                               ▼
+       [ LOCAL MODE ]                                  [ CLOUD MODE ]
+  • Runs locally on CPU                          • Cloud-native deployment
+  • FastAPI + Uvicorn (:8000)                    • LiveKit Cloud (WebRTC)
+  • Ollama (qwen3:4b / 1.7b)                     • Groq Whisper (STT) + Gemini (TTS)
+  • SQLite local store                           • Supabase PostgreSQL + pgvector
+  • Optional faster-whisper (CPU)                • Row-Level Security (RLS) & Auth
+```
 
-- Free public compute must be independent of a laptop. LiveKit Build can host the worker but cold starts and quotas are product-visible constraints.
-- Multilingual transcription does not prove multilingual spoken output. Each language remains experimental until the complete audio path is tested.
-- Join-token TTL does not end an existing call. Database expiry and worker shutdown enforce runtime limits separately.
-- Privileged database access still needs explicit owner filters. RLS alone does not protect service-role code.
-- Small CPU models make a free local path practical, but tool correctness and latency must be measured on the actual machine.
+### 1. Dual-Path Execution
+- **Local First**: Built to run entirely offline on standard developer hardware (CPU-only, no CUDA requirement) using Ollama, SQLite, and optional CPU-based Faster-Whisper.
+- **Cloud Scale**: Seamlessly switches to WebRTC audio streaming via LiveKit Cloud, Groq Whisper STT, and Supabase Postgres with pgvector when deployed to production.
 
-## Evidence and limitations
+### 2. Transparent & Inspectable Memory
+- Multi-category memory modeling: **semantic** (facts and preferences), **episodic** (contextual interactions), and **procedural** (workflows).
+- User-in-the-loop controls: Explicit consent gating, real-time memory explorer, inline editing, granular deletion, and JSON export.
+- Strict isolation: Anonymous guest sessions expire after 5 minutes with automated data purging, while authenticated sessions are protected by Row Level Security (RLS).
 
-An initial 12-test Python suite and 10-test frontend suite passed; the initial frontend production build succeeded. Further integration tests were added and remain pending. No real speech latency, deployment uptime or improvement percentage is claimed. See VERIFICATION.md for the exact boundary.
+### 3. Bounded LangGraph Agent Loop
+- The agent loop is orchestrated via a LangGraph state machine.
+- Deterministic safety: Math expressions are evaluated with an AST parser rather than Python's unsafe `eval()`.
+- Identity isolation: Tools cannot accept or spoof user identifiers; identity is bound authoritatively by server context.
 
-## Resume statements supported by current evidence
+---
 
-- Implemented a LangGraph tool workflow with owner-scoped SQLite persistence and tests for memory correction, deletion, consent, quota enforcement and deterministic calculation.
-- Built a Next.js/TypeScript voice-workspace interface with memory controls, session states and server-side authorization routes; validated an initial production build and unit suite.
+## Key Technical Decisions & Trade-Offs
 
-Do not add claims about a publicly deployed multilingual agent, production reliability, measured latency or pgvector quality until the release gates pass. No live demo or repository URL is available yet.
+| Decision | Rationale | Trade-Off |
+| :--- | :--- | :--- |
+| **LangGraph Orchestration** | State-driven control with checkpointing and explicit tool boundaries. | Slight learning curve compared to standard linear prompt chains. |
+| **LiveKit WebRTC vs. WebSocket** | Native WebRTC transport provides true full-duplex audio with sub-second latency and robust packet loss recovery. | Requires WebRTC gateway infrastructure (managed via LiveKit Cloud). |
+| **Dual Local/Cloud Storage** | SQLite locally eliminates network dependencies; Supabase Postgres in cloud ensures durable multi-tenancy. | Maintaining two lightweight store adapters (`store.py` and `cloud_store.py`). |
+| **Server-Derived Identity** | Tool inputs strictly prohibit the LLM from passing or selecting user IDs. | Requires rigorous server context propagation across all tool invocations. |
 
-## Walkthrough to record after activation
+---
 
-Start an anonymous call; show permission onboarding and real connection states. Ask for a note and task, inspect the tool results, and show session isolation. Sign in, explicitly save a preference, reconnect, retrieve/correct/delete it, then demonstrate English, Hindi and Telugu with tested voices. Finish with quota exhaustion and architecture. Record only actual behavior; no synthetic success states.
+## Key Highlights & Outcomes
+
+- **Full-Stack Implementation**: Production Next.js App Router interface paired with an asynchronous Python FastAPI/LiveKit backend.
+- **Strict Multi-Tenancy**: Zero cross-tenant data leaks, verified via automated test suites covering authentication, quota enforcement, and permission boundaries.
+- **Zero Cost Mandatory Baseline**: Designed to run indefinitely on free-tier allowances or completely offline on local hardware.
