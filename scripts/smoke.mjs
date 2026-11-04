@@ -1,0 +1,10 @@
+const base = process.env.APP_URL;
+if (!base || new URL(base).protocol !== 'https:') throw new Error('APP_URL must be the deployed HTTPS origin');
+const page = await fetch(base, {signal:AbortSignal.timeout(30000)});
+if (!page.ok || !(await page.text()).includes('Recall')) throw new Error('Frontend smoke failed');
+const health = await fetch(new URL('/api/health',base), {signal:AbortSignal.timeout(15000)});
+const state = await health.json();
+if (!health.ok || !state.configured) throw new Error('Deployment exists but required services are not configured');
+const unauthorized = await fetch(new URL('/api/memories',base));
+if (unauthorized.status !== 401) throw new Error('Unauthorized memory access was not rejected');
+console.log('HTTPS, configuration presence and unauthenticated denial passed. A live audio test is still required.');

@@ -1,0 +1,11 @@
+'use client';
+import {useState} from 'react';
+import {Check,Trash2} from 'lucide-react';
+type RecordItem={id:string;content:string;status?:string;due_at?:string};
+type RequestFn=(path:string,method?:string,body?:unknown)=>Promise<Record<string,unknown>>;
+export default function Records({request,onError}:{request:RequestFn;onError:(message:string)=>void}){
+ const [records,setRecords]=useState<Record<string,RecordItem[]>>({});const [pending,setPending]=useState<string|null>(null);
+ async function load(){try{setRecords(await request('/records') as Record<string,RecordItem[]>);}catch(error){onError(error instanceof Error?error.message:'Unable to load records.');}}
+ async function mutate(kind:string,id:string,method:string,status?:string){try{await request('/records',method,{kind,id,...(status?{status}:{})});setPending(null);await load();}catch(error){onError(error instanceof Error?error.message:'Unable to update record.');}}
+ return <section className="document-section"><div className="section-heading"><h2>Notes & next steps</h2><button className="secondary" onClick={()=>void load()}>Load saved items</button></div><p className="quiet">Reminders are durable in-app records. Open this list to see due reminders; no email or background push is sent.</p>{Object.entries(records).map(([kind,items])=><div key={kind}><h3>{kind[0].toUpperCase()+kind.slice(1)}</h3>{!items.length&&<p className="quiet">No {kind} yet. Ask Recall to create one.</p>}{items.map(item=><article className="memory-row" key={item.id}><div><p>{item.content}</p><small>{item.status}{item.due_at&&` · ${new Date(item.due_at).toLocaleString()}${Date.parse(item.due_at)<=Date.now()?' · Due':''}`}</small></div><div className="row-actions">{kind!=='notes'&&item.status==='pending'&&<button aria-label={kind==='tasks'?'Complete task':'Dismiss reminder'} onClick={()=>void mutate(kind,item.id,'PATCH',kind==='tasks'?'done':'delivered')}><Check size={16}/></button>}<button aria-label="Delete saved item" onClick={()=>setPending(item.id)}><Trash2 size={16}/></button></div>{pending===item.id&&<div className="delete-confirm">Permanently delete this item?<button onClick={()=>void mutate(kind,item.id,'DELETE')}>Confirm delete</button><button onClick={()=>setPending(null)}>Keep item</button></div>}</article>)}</div>)}</section>;
+}
