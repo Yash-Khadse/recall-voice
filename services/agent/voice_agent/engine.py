@@ -101,7 +101,17 @@ class State(TypedDict):
 
 
 class Engine:
-    def __init__(self, store, owner, session_id, model, checkpointer, consent=False, consume=None):
+    def __init__(
+        self,
+        store,
+        owner,
+        session_id,
+        model,
+        checkpointer,
+        consent=False,
+        consume=None,
+        fallback=None,
+    ):
         self.store, self.owner, self.session_id = store, owner, session_id
         self.consent, self.consume = consent, consume
         self.events = []
@@ -112,6 +122,8 @@ class Engine:
             description="Manage explicit memories, notes, tasks and durable in-app reminders; recall memories, search user documents, calculate, or get UTC time. No destructive actions. Remember only when explicitly asked; key identifies a fact to correct.",
         )
         self.model = model.bind_tools([tool])
+        if fallback is not None:
+            self.model = self.model.with_fallbacks([fallback.bind_tools([tool])])
         graph = StateGraph(State)
         graph.add_node("reason", self.reason)
         graph.add_node("tools", self.tools)

@@ -15,12 +15,38 @@ from psycopg import AsyncConnection
 from psycopg.rows import dict_row
 
 from .cloud_store import CloudStore
-from .config import Settings, model_for
+from .config import Settings, fallback_model_for, model_for, validate_hosted_model
 from .engine import Engine, retrieve
 from .metrics import Metrics
 
 server = AgentServer(num_idle_processes=0)
 log = logging.getLogger("recall.metrics")
+
+
+def prewarm(proc):
+    """Runs when a job process starts, before the job: load heavy assets off the audio loop."""
+    import groq.types.chat  # noqa: F401  (import cost shown as event-loop stalls otherwise)
+    from langchain_groq import ChatGroq  # noqa: F401
+
+    proc.userdata["vad"] = silero.VAD.load()
+    problem = validate_hosted_model(Settings())
+    if problem:
+        log.error("LLM configuration problem: %s", problem)
+
+
+server.setup_fnc = prewarm
+
+
+def describe_failure(error: Exception) -> str:
+    """Map a provider failure to an honest user-facing message (details go to the logs)."""
+    status = getattr(error, "status_code", 0)
+    if status == 429 or isinstance(error, ValueError):
+        return "This session has reached its request allowance. Please try again later."
+    if status in (401, 403, 404):
+        return "The voice service is misconfigured. The owner has been notified in the logs."
+    if isinstance(error, TimeoutError) or "timeout" in type(error).__name__.lower():
+        return "The model took too long to respond. Please try again."
+    return "The model is temporarily unavailable. Please try again later."
 
 
 class BudgetSTT(groq.STT):
@@ -107,10 +133,7 @@ class RecallAgent(Agent):
             raise
         except Exception as error:
             log.exception("llm_node failed: %r", error)
-            if getattr(error, "status_code", 0) == 429 or isinstance(error, ValueError):
-                yield "This session has reached its request allowance. Please try again later."
-            else:
-                yield "The model is temporarily unavailable. Please try again later."
+            yield describe_failure(error)
 
 
 @server.rtc_session(agent_name="recall-voice")
@@ -183,6 +206,7 @@ async def run_session(ctx, settings, store):
             saver,
             consent=store.session["memory_consent"],
             consume=store.consume,
+            fallback=fallback_model_for(settings),
         )
         kwargs = {}
         tts_enabled = settings.tts_provider == "gemini"
@@ -215,8 +239,8 @@ async def run_session(ctx, settings, store):
                 detect_language=store.session["language"] == "auto",
                 language="" if store.session["language"] == "auto" else store.session["language"],
             ),
-            vad=silero.VAD.load(),
-            allow_interruptions=True,
+            vad=ctx.proc.userdata.get("vad") or silero.VAD.load(),
+            turn_handling={"interruption": {"enabled": True}},
             conn_options=SessionConnectOptions(
                 stt_conn_options=APIConnectOptions(max_retry=0),
                 tts_conn_options=APIConnectOptions(max_retry=0),

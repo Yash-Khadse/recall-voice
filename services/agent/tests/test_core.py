@@ -104,3 +104,35 @@ async def test_graph_real_tool_loop(store):
     assert result["message"] == "5"
     assert result["tool_events"][0]["result"]["value"] == 5
     assert len(store.list("alice", "messages")) == 2
+
+
+def test_hosted_model_validation_reports_missing_model(monkeypatch):
+    import httpx
+
+    from voice_agent.config import Settings, validate_hosted_model
+
+    class Response:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"data": [{"id": "openai/gpt-oss-20b"}]}
+
+    monkeypatch.setattr(httpx, "get", lambda *a, **k: Response())
+    ok = Settings(llm_provider="groq", groq_api_key="k", llm_model="openai/gpt-oss-20b")
+    assert validate_hosted_model(ok) is None
+    bad = Settings(llm_provider="groq", groq_api_key="k", llm_model="llama-3.3-70b-versatile")
+    assert "llama-3.3-70b-versatile" in validate_hosted_model(bad)
+    assert validate_hosted_model(Settings(llm_provider="ollama")) is None
+
+
+def test_failure_messages_are_specific():
+    from voice_agent.worker import describe_failure
+
+    class Err(Exception):
+        def __init__(self, status):
+            self.status_code = status
+
+    assert "allowance" in describe_failure(Err(429))
+    assert "misconfigured" in describe_failure(Err(404))
+    assert "temporarily" in describe_failure(Err(500))
