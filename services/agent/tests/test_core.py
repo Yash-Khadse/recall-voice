@@ -136,3 +136,13 @@ def test_failure_messages_are_specific():
     assert "allowance" in describe_failure(Err(429))
     assert "misconfigured" in describe_failure(Err(404))
     assert "temporarily" in describe_failure(Err(500))
+
+
+def test_groq_reasoning_effort_only_for_reasoning_models():
+    from voice_agent.config import Settings, model_for
+
+    base = {"llm_provider": "groq", "groq_api_key": "k"}
+    oss = model_for(Settings(**base, llm_model="openai/gpt-oss-20b"))
+    assert oss.reasoning_effort == "low"
+    other = model_for(Settings(**base, llm_model="qwen/qwen3.8-27b"))
+    assert other.reasoning_effort is None

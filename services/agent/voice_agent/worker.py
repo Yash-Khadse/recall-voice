@@ -242,6 +242,8 @@ async def run_session(ctx, settings, store):
             ),
             vad=ctx.proc.userdata.get("vad") or silero.VAD.load(),
             turn_handling={"interruption": {"enabled": True}},
+            # Emit reply text as it is generated so a TTS failure still leaves the user a text answer.
+            use_tts_aligned_transcript=False,
             conn_options=SessionConnectOptions(
                 stt_conn_options=APIConnectOptions(max_retry=0),
                 tts_conn_options=APIConnectOptions(max_retry=0),

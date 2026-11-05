@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     llm_provider: Literal["ollama", "groq", "gemini"] = "ollama"
     llm_model: str = "qwen3:4b"
     llm_fallback_model: str = ""
+    llm_reasoning_effort: str = "low"
     ollama_base_url: str = "http://localhost:11434"
     groq_api_key: str = ""
     google_api_key: str = ""
@@ -46,6 +47,10 @@ def model_for(settings: Settings, model_name: str = ""):
             raise RuntimeError("GROQ_API_KEY is not configured")
         from langchain_groq import ChatGroq
 
+        extra = {}
+        if "gpt-oss" in name and settings.llm_reasoning_effort:
+            # Reasoning models otherwise spend seconds "thinking" before the first spoken token.
+            extra["reasoning_effort"] = settings.llm_reasoning_effort
         return ChatGroq(
             model=name,
             api_key=settings.groq_api_key,
@@ -53,6 +58,7 @@ def model_for(settings: Settings, model_name: str = ""):
             temperature=0.3,
             max_retries=0,
             timeout=45,
+            **extra,
         )
     if not settings.google_api_key:
         raise RuntimeError("GOOGLE_API_KEY is not configured")
