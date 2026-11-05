@@ -20,9 +20,11 @@ export async function POST(request: Request) {
       const dispatch = new AgentDispatchClient(process.env.LIVEKIT_URL!,process.env.LIVEKIT_API_KEY!,process.env.LIVEKIT_API_SECRET!);
       await dispatch.createDispatch(session.room_name,'recall-voice',{metadata:JSON.stringify({sessionId:session.id})});
       return json({sessionId:session.id,token:await token.toJwt(),url:process.env.LIVEKIT_URL,expiresAt:session.expires_at,mode:session.mode});
-    } catch {
+    } catch (cause) {
+      // Log the class of failure only (no tokens, user ids or content) so operators can diagnose.
+      console.error('session_dispatch_failed', cause instanceof Error ? cause.name : typeof cause, cause instanceof Error ? cause.message.slice(0,200) : '');
       await db.from('sessions').update({ended_at:new Date().toISOString()}).eq('id',session.id).eq('user_id',user.id);
-      throw new HttpError(503,'agent_unavailable','The voice service could not start. Please try local mode.');
+      throw new HttpError(503,'agent_unavailable','The voice agent could not be reached. Please try again in a moment.');
     }
   } catch(error) { return failure(error); }
 }
