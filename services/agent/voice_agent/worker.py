@@ -71,6 +71,11 @@ class RecallAgent(Agent):
         super().__init__(instructions="You are Recall Voice. Preserve the user language.")
         self.engine, self.store, self.room, self.metrics = engine, store, room, metrics
 
+    async def publish_reply(self, text):
+        """Send the reply text on our own stream so it reaches the UI even if TTS fails."""
+        with suppress(Exception):
+            await self.room.local_participant.send_text(text, topic="recall.reply")
+
     async def llm_node(self, chat_ctx, tools, model_settings):
         await asyncio.to_thread(self.store.validate)
         latest = next(
@@ -126,6 +131,7 @@ class RecallAgent(Agent):
                     "messages",
                     {"role": role, "content": content[:16000]},
                 )
+            await self.publish_reply(output)
             if self.engine.events:
                 await self.room.local_participant.send_text(
                     json.dumps(self.engine.events, ensure_ascii=False), topic="recall.tools"
@@ -134,7 +140,9 @@ class RecallAgent(Agent):
             raise
         except Exception as error:
             log.exception("llm_node failed: %r", error)
-            yield describe_failure(error)
+            message = describe_failure(error)
+            await self.publish_reply(message)
+            yield message
 
 
 @server.rtc_session(agent_name="recall-voice")

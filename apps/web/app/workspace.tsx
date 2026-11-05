@@ -113,7 +113,10 @@ export default function Workspace(){
         connection.on(RoomEvent.ParticipantConnected,participant=>{if(participant.isAgent){clearAgentTimers();setError('');setStatus('Agent connected');}});
         connection.on(RoomEvent.AudioPlaybackStatusChanged,()=>{if(!connection.canPlaybackAudio)setNotice('Click anywhere on the page to allow the agent’s voice to play.');});
         connection.on(RoomEvent.ParticipantAttributesChanged,(changed,participant)=>{if(participant.isAgent&&changed['lk.agent.state'])setStatus(changed['lk.agent.state']);});
+        connection.registerTextStreamHandler('recall.reply',async(reader)=>{const text=(await reader.readAll()).trim();if(text)setMessages(previous=>[...previous,{id:crypto.randomUUID(),role:'assistant',content:text,final:true}]);});
         connection.on(RoomEvent.TranscriptionReceived,(segments:TranscriptionSegment[],participant)=>{
+          // Agent text arrives on 'recall.reply' so it never depends on TTS playout; only the user's STT is shown here.
+          if(participant?.isAgent)return;
           for(const segment of segments)setMessages(previous=>{const next={id:segment.id,role:participant?.isAgent?'assistant':'user',content:segment.text,final:segment.final};return previous.some(m=>m.id===segment.id)?previous.map(m=>m.id===segment.id?next:m):[...previous,next];});
         });
         connection.on(RoomEvent.TrackSubscribed,track=>{if(track.kind==='audio'){const element=track.attach();audioContainer.current?.appendChild(element);}});
