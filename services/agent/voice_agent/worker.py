@@ -166,7 +166,7 @@ async def run_session(ctx, settings, store):
     connection = await AsyncConnection.connect(
         settings.database_url,
         autocommit=True,
-        prepare_threshold=0,
+        prepare_threshold=None,  # never use server-side prepared statements (poolers)
         row_factory=dict_row,
         options="-c search_path=recall_private",
     )
