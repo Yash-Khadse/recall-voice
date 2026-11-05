@@ -25,9 +25,9 @@ log = logging.getLogger("recall.metrics")
 
 def prewarm(proc):
     """Runs when a job process starts, before the job: load heavy assets off the audio loop."""
+    import google.genai.types  # noqa: F401
     import groq.types.chat  # noqa: F401  (import cost shown as event-loop stalls otherwise)
     from langchain_groq import ChatGroq  # noqa: F401
-    import google.genai.types  # noqa: F401
 
     proc.userdata["vad"] = silero.VAD.load()
     problem = validate_hosted_model(Settings())
