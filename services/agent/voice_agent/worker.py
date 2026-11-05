@@ -106,6 +106,7 @@ class RecallAgent(Agent):
         except asyncio.CancelledError:
             raise
         except Exception as error:
+            log.exception("llm_node failed: %r", error)
             if getattr(error, "status_code", 0) == 429 or isinstance(error, ValueError):
                 yield "This session has reached its request allowance. Please try again later."
             else:
