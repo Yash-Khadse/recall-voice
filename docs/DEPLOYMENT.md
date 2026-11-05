@@ -32,7 +32,7 @@ The worker container installs model dependencies but no giant local LLM. Optiona
 
 Configure the variables in `apps/web/.env.example`. `APP_ORIGIN` must exactly match the HTTPS deployment origin. Generate a high-entropy `IP_HASH_SECRET`. Leave `NEXT_PUBLIC_LOCAL_API_URL` empty in production. Never expose service-role or inference keys via `NEXT_PUBLIC_*`.
 
-For Git deployment, set the Vercel root directory to `apps/web`. For the supplied CLI Actions deployment, use a Vercel project whose root is `.` relative to the uploaded `apps/web` directory; do not apply `apps/web` twice. Choose one deployment method to avoid duplicate builds. The Actions path requires Vercel org ID, project ID and token as GitHub secrets.
+The web app deploys through Vercel's Git integration: connect the GitHub repository and set the Vercel root directory to `apps/web`. GitHub Actions does not deploy the web app, so there are no duplicate builds.
 
 ## GitHub Actions
 
@@ -40,7 +40,6 @@ Push this repository to the GitHub repository you choose. `Verify` runs checks w
 
 Set a protected `production` environment and secrets:
 
-- `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`
 - `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`
 - `LIVEKIT_SECRET_LIST` in the format required by the official `livekit/deploy-action`
 
@@ -48,7 +47,7 @@ Set `APP_URL` to the actual verified HTTPS origin and `DEPLOY_ENABLED=true` only
 
 ## Release gates
 
-- Review deployment change detection before enabling automation: the current workflow compares only the latest commit, so multi-commit pushes can skip changed components. A proposed always-deploy-both change was rejected by automatic approval review because it broadened production deployment effects; the workflow remains unchanged and disabled by default.
+- The deploy workflow always redeploys the LiveKit agent after a green `Verify` on `main` (it no longer diffs only the latest commit) and then runs the smoke script. Vercel deploys independently through its Git integration.
 - Verify concurrent document uploads cannot exceed 100 chunks per owner through `ingest_document`.
 - Anonymous admission rate/concurrency tests against real Postgres, including concurrent requests.
 - An authenticated user cannot read/update/delete another user's memory via REST, RPC or server endpoints.
